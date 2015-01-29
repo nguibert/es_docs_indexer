@@ -1,4 +1,6 @@
 package fr.ippon.demos.indexer
+
+import org.apache.log4j.Logger
 /**
  * @author nguibert
  */
@@ -15,6 +17,7 @@ class FileIndexer (filepath: String, url: String) {
     import java.util.ArrayList
     import org.apache.http.client.entity.UrlEncodedFormEntity
     
+    val logger : Logger = Logger.getLogger("FilesIndexer");
     /**
      * injecte le fichier dans la base documentaire
      */
@@ -50,7 +53,9 @@ class FileIndexer (filepath: String, url: String) {
       val status = resp.getStatusLine.getStatusCode
       if (status == HttpStatus.SC_OK) { 
         val respBody = new BasicResponseHandler().handleResponse(resp)
-        println("OK - " + respBody)
+        if (logger.isTraceEnabled){
+          logger.trace("HTTP OK - " + respBody)
+        }
         return (getHitsCount(respBody) > 0)
       } else 
         return false
@@ -83,9 +88,8 @@ class FileIndexer (filepath: String, url: String) {
      * helper HTTP POST
      */
     def postRequest(jsonData : String, serverUrl : String) : HttpResponse = {
-      // TODO utiliser log4j a la place.
-      println("POST " + serverUrl)
-      
+      logger.trace("POST " + serverUrl)
+
       val httpClient = new DefaultHttpClient;
       val post = new HttpPost(serverUrl)
       post.setHeader("Content-type", "application/json")
@@ -108,21 +112,24 @@ class FileIndexer (filepath: String, url: String) {
             val parser : JSONParser = new JSONParser
             val root : JSONObject = parser.parse(body).asInstanceOf[JSONObject]
             
-            println("Index cree avec succes")
             val created = root.get("created")
             created match {
               case None => return false
-              case value : Boolean => return value
+              case value : Boolean => {
+                if (logger.isDebugEnabled())
+                  logger.debug("Document indexé avec succès - _id : " + root.get("_id"))
+                return value
+              }
             }
           } catch {
             case ex : Exception => {
-              ex.printStackTrace()
+              logger.error(ex.getMessage, ex)
               return false
             }
           }
       } else {
-        println("Index non cree - HTTP " + statusCode)
-        println("Reponse de elasticsearch :" + body)
+        logger.warn("Index non cree - HTTP " + statusCode)
+        logger.warn("Reponse de elasticsearch :" + body)
         return false
       }
     }
@@ -161,7 +168,7 @@ class FileIndexer (filepath: String, url: String) {
           }
         }
       } else {
-        println(fp.toString + " does not exist !")
+        logger.warn(fp.toString + " n'existe pas !")
       }
     }
 }
