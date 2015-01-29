@@ -89,15 +89,16 @@ class FileIndexer (filepath: String, url: String) {
      */
     def postRequest(jsonData : String, serverUrl : String) : HttpResponse = {
       logger.trace("POST " + serverUrl)
-
       val httpClient = new DefaultHttpClient;
-      val post = new HttpPost(serverUrl)
-      post.setHeader("Content-type", "application/json")
-      post.setEntity(new StringEntity(jsonData))
-      val response = httpClient.execute(post)     
-      httpClient.close();
-      
-      return response
+      try {
+        val post = new HttpPost(serverUrl)
+        post.setHeader("Content-type", "application/json")
+        post.setEntity(new StringEntity(jsonData))
+        val response = httpClient.execute(post)     
+        return response
+      } finally {
+        httpClient.close();
+      }      
     }
     
     /**
